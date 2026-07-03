@@ -1,0 +1,16 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: Position Morph Behavior
+
+compatible: "zmk,behavior-position-morph"
+
+include: zero_param.yaml
+
+properties:
+  bindings:
+    type: phandle-array
+    required: true
+  positions:
+    type: array
+    required: true
