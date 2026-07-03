@@ -7,6 +7,8 @@
 #define DT_DRV_COMPAT zmk_behavior_hold_tap
 
 #include <zephyr/device.h>
+#include <zephyr/input/input.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <drivers/behavior.h>
 #include <zmk/keys.h>
 #include <dt-bindings/zmk/keys.h>
@@ -832,6 +834,30 @@ ZMK_LISTENER(behavior_hold_tap, behavior_hold_tap_listener);
 ZMK_SUBSCRIPTION(behavior_hold_tap, zmk_position_state_changed);
 // this should be modifiers_state_changed, but unfrotunately that's not implemented yet.
 ZMK_SUBSCRIPTION(behavior_hold_tap, zmk_keycode_state_changed);
+
+#if IS_ENABLED(CONFIG_ZMK_POINTING)
+
+// Treat relative pointer input (trackball movement / scrolling) like a key-press
+// interrupt for retro-tap purposes: promote held hold-taps that have already
+// passed their tapping term from STATUS_HOLD_TIMER to STATUS_HOLD_INTERRUPT so
+// releasing them does not emit the tap binding. Runs on the system work queue
+// (same pattern as activity.c) to stay serialized with event processing.
+static void hold_tap_pointer_interrupt_work_cb(struct k_work *_work) {
+    update_hold_status_for_retro_tap(ZMK_BHV_HOLD_TAP_POSITION_NOT_USED);
+}
+
+K_WORK_DEFINE(hold_tap_pointer_interrupt_work, hold_tap_pointer_interrupt_work_cb);
+
+static void hold_tap_pointer_input_listener(struct input_event *ev) {
+    if (ev->type != INPUT_EV_REL) {
+        return;
+    }
+    k_work_submit(&hold_tap_pointer_interrupt_work);
+}
+
+INPUT_CALLBACK_DEFINE(NULL, hold_tap_pointer_input_listener);
+
+#endif /* IS_ENABLED(CONFIG_ZMK_POINTING) */
 
 void behavior_hold_tap_timer_work_handler(struct k_work *item) {
     struct k_work_delayable *d_work = k_work_delayable_from_work(item);
