@@ -43,6 +43,9 @@ properties:
     type: boolean
   retro-tap:
     type: boolean
+  retro-tap-timeout-ms:
+    type: int
+    default: 0
   hold-trigger-key-positions:
     type: array
     required: false

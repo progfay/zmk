@@ -64,6 +64,7 @@ struct behavior_hold_tap_config {
     bool hold_while_undecided;
     bool hold_while_undecided_linger;
     bool retro_tap;
+    int retro_tap_timeout_ms;
     bool hold_trigger_on_release;
     int32_t hold_trigger_key_positions_len;
     int32_t hold_trigger_key_positions[];
@@ -576,8 +577,13 @@ static void decide_hold_tap(struct active_hold_tap *hold_tap,
     release_captured_events();
 }
 
-static void decide_retro_tap(struct active_hold_tap *hold_tap) {
+static void decide_retro_tap(struct active_hold_tap *hold_tap, int64_t release_timestamp) {
     if (!hold_tap->config->retro_tap) {
+        return;
+    }
+    if (hold_tap->config->retro_tap_timeout_ms > 0 &&
+        (release_timestamp - hold_tap->timestamp) >= hold_tap->config->retro_tap_timeout_ms) {
+        LOG_DBG("%d retro tap timed out, ignoring", hold_tap->position);
         return;
     }
     if (hold_tap->status == STATUS_HOLD_TIMER) {
@@ -658,7 +664,7 @@ static int on_hold_tap_binding_released(struct zmk_behavior_binding *binding,
     }
 
     decide_hold_tap(hold_tap, HT_KEY_UP);
-    decide_retro_tap(hold_tap);
+    decide_retro_tap(hold_tap, event.timestamp);
     release_binding(hold_tap);
 
     if (hold_tap->config->hold_while_undecided && hold_tap->config->hold_while_undecided_linger) {
@@ -896,6 +902,7 @@ static int behavior_hold_tap_init(const struct device *dev) {
         .hold_while_undecided = DT_INST_PROP(n, hold_while_undecided),                             \
         .hold_while_undecided_linger = DT_INST_PROP(n, hold_while_undecided_linger),               \
         .retro_tap = DT_INST_PROP(n, retro_tap),                                                   \
+        .retro_tap_timeout_ms = DT_INST_PROP(n, retro_tap_timeout_ms),                             \
         .hold_trigger_on_release = DT_INST_PROP(n, hold_trigger_on_release),                       \
         .hold_trigger_key_positions = DT_INST_PROP(n, hold_trigger_key_positions),                 \
         .hold_trigger_key_positions_len = DT_INST_PROP_LEN(n, hold_trigger_key_positions),         \
