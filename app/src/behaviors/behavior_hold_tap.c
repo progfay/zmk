@@ -854,14 +854,14 @@ static void hold_tap_pointer_interrupt_work_cb(struct k_work *_work) {
 
 K_WORK_DEFINE(hold_tap_pointer_interrupt_work, hold_tap_pointer_interrupt_work_cb);
 
-static void hold_tap_pointer_input_listener(struct input_event *ev) {
+static void hold_tap_pointer_input_listener(struct input_event *ev, void *user_data) {
     if (ev->type != INPUT_EV_REL) {
         return;
     }
     k_work_submit(&hold_tap_pointer_interrupt_work);
 }
 
-INPUT_CALLBACK_DEFINE(NULL, hold_tap_pointer_input_listener);
+INPUT_CALLBACK_DEFINE(NULL, hold_tap_pointer_input_listener, NULL);
 
 #endif /* IS_ENABLED(CONFIG_ZMK_POINTING) */
 
